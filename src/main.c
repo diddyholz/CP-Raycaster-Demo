@@ -2,22 +2,20 @@
 #include <cas-sdk/display.h>
 #include <cas-sdk/input/key-input.h>
 #include <cas-sdk/input/touch-input.h>
-
-#define MAP_HEIGHT  8
-#define MAP_WIDTH   8
-#define TILE_SIZE   40
-#define PLAYER_SIZE 5
-#define sgn(x) ((x<0)?-1:((x>0)?1:0)) /* macro to return the sign of a number */
+#include "math_tables.h"
+#include "constants.h"
 
 typedef struct 
 {
-  float xPos;
-  float yPos;
-  float angle;
+  uint16_t xPos;
+  uint16_t yPos;
+  uint16_t angle;
+  int16_t velocity;
 } Player;
 
 void gameSetup();
 void gameLoop();
+void characterManipulation();
 void playerInput();
 void draw2dField();
 void drawRectangle(uint16_t x, uint16_t y, uint16_t width, uint16_t height, CASColor color);
@@ -37,9 +35,6 @@ uint8_t map[MAP_HEIGHT][MAP_WIDTH] =
 
 Player mainPlayer;
 
-// 0x8C20038E hangs CPU (sts fpul, r1)
-
-
 void main()
 {
   gameSetup();
@@ -51,8 +46,8 @@ void gameSetup()
   fillFrameBufferS(0x0000);
   refreshDisplay();
 
-  mainPlayer.xPos = 4;
-  mainPlayer.yPos = 4;
+  mainPlayer.xPos = 32767;
+  mainPlayer.yPos = 32767;
   mainPlayer.angle = 0;
 }
 
@@ -61,18 +56,45 @@ void gameLoop()
   while (1)
   {
     playerInput();
+    characterManipulation();
     draw2dField();
   }
+}
+
+void characterManipulation()
+{
+  mainPlayer.xPos += ((sintable[mainPlayer.angle] * mainPlayer.velocity) / POWER_16);
+  mainPlayer.yPos += ((sintable[mainPlayer.angle + 90] * mainPlayer.velocity) / POWER_16);
+  
+  mainPlayer.velocity = 0;
 }
 
 void playerInput()
 {
   CASKeyboardInput input = getKeyInput();
 
-  if(input.bufferTwo & KEY_DOWN_2) mainPlayer.yPos += 0.1;
-  if(input.bufferTwo & KEY_UP_2) mainPlayer.yPos -= 0.1;
-  if(input.bufferOne & KEY_RIGHT_1) mainPlayer.xPos += 0.1;
-  if(input.bufferOne & KEY_LEFT_1) mainPlayer.xPos -= 0.1;
+  if(input.bufferTwo & KEY_DOWN_2) 
+  {
+    mainPlayer.velocity = -500;
+  }
+  if(input.bufferTwo & KEY_UP_2)
+  {
+    mainPlayer.velocity = 500;
+  }
+  if(input.bufferOne & KEY_RIGHT_1)
+  {
+    if(mainPlayer.angle == 0)
+      mainPlayer.angle = 360;
+
+    mainPlayer.angle -= PLAYER_SENSITIVITY;
+  }
+  if(input.bufferOne & KEY_LEFT_1)
+  {
+    mainPlayer.angle += PLAYER_SENSITIVITY;
+   
+    if(mainPlayer.angle == 360)
+      mainPlayer.angle = 0;
+  }
 }
 
 void draw2dField()
@@ -113,10 +135,16 @@ void draw2dField()
   color.asShort = 0x0000;
   color.green = 0b111111;
 
-  line_fast(299, 501, 5, 300, color);
-  drawLine(5, 300, 299, 501, color);
+  uint16_t playerPixelX = (mainPlayer.xPos * (MAP_WIDTH * TILE_SIZE)) / POWER_16;
+  uint16_t playerPixelY = (mainPlayer.yPos * (MAP_HEIGHT * TILE_SIZE)) / POWER_16;
+  uint16_t playerCenterPixelX = playerPixelX + (PLAYER_SIZE / 2);
+  uint16_t playerCenterPixelY = playerPixelY + (PLAYER_SIZE / 2);
 
-  drawRectangle((uint16_t)(mainPlayer.xPos * (float)TILE_SIZE), (uint16_t)(mainPlayer.yPos * (float)TILE_SIZE), PLAYER_SIZE, PLAYER_SIZE, color);
+  drawRectangle(playerPixelX, playerPixelY, PLAYER_SIZE, PLAYER_SIZE, color);
+
+  // draw player angle line
+  uint8_t angleLineSize = 15;
+  drawLine(playerCenterPixelX, playerCenterPixelY, playerCenterPixelX + ((sintable[mainPlayer.angle] * angleLineSize) / POWER_16), playerCenterPixelY + ((sintable[mainPlayer.angle + 90] * angleLineSize) / POWER_16), color);
 
   refreshDisplay();
 }
@@ -131,71 +159,6 @@ void drawRectangle(uint16_t x, uint16_t y, uint16_t width, uint16_t height, CASC
     }
   }
 }
-
-// void drawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, CASColor color)
-// {
-//   uint32_t finePixelX;
-//   uint32_t finePixelY;
-
-//   uint32_t fineX2;
-//   uint32_t fineY2;
-
-//   uint8_t xLarger = 0;
-
-//   if(x1 < x2)
-//   {
-//     finePixelX = x1 * 65536;
-//     fineX2 = x2 * 65536;
-//   }
-//   else
-//   {
-//     finePixelX = x2 * 65536;
-//     fineX2 = x1 * 65536;
-//   }
-
-//   if(y1 < y2)
-//   {
-//     finePixelY = y1 * 65536;
-//     fineY2 = y2 * 65536;
-//   }
-//   else
-//   {
-//     finePixelY = y2 * 65536;
-//     fineY2 = y1 * 65536;
-//   }
-
-//   int32_t slope;
-
-//   if((fineX2 - finePixelX) > (fineY2 - finePixelY))
-//   {
-//     slope = (fineY2 - finePixelY) / ((fineX2 - finePixelX) / 65536);
-//     xLarger = 1;
-//   }
-//   else
-//   {
-//     slope = (fineX2 - finePixelX) / ((fineY2 - finePixelY) / 65536);
-//     xLarger = 0;
-//   }
-
-//   printHexWord(slope, 0, 0);
-
-//   while (finePixelX != fineX2 || finePixelY != fineY2)
-//   {
-//     finePixelX += 65536;
-
-//     if(fineY2 - finePixelY < 65536)
-//       finePixelY = fineY2;
-//     else
-//       finePixelY += slope;
-
-//     frameBuffer[finePixelY / 65536][finePixelX / 65536] = color.asShort;
-
-//     printHexWord(finePixelY / 65536, 0, 1);
-//     printHexWord(finePixelX / 65536, 0, 2);
-
-//     refreshDisplay();
-//   }
-// }
 
 void drawLine(int32_t x1, int32_t y1, int32_t x2, int32_t y2, CASColor color)
 {
