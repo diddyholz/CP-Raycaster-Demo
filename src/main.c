@@ -25,7 +25,7 @@ uint8_t map[MAP_HEIGHT][MAP_WIDTH] =
 {
   1, 1, 1, 1, 1, 1, 1, 1,
   1, 0, 0, 0, 0, 0, 0, 1,
-  1, 0, 0, 0, 0, 0, 0, 1,
+  1, 0, 1, 0, 0, 0, 0, 1,
   1, 0, 0, 0, 0, 0, 0, 1,
   1, 0, 0, 0, 0, 0, 0, 1,
   1, 0, 0, 0, 0, 0, 0, 1,
@@ -95,6 +95,69 @@ void playerInput()
     if(mainPlayer.angle == 360)
       mainPlayer.angle = 0;
   }
+}
+
+uint32_t castRay(uint16_t angle)
+{
+  int32_t slopeX = 0; // slope in x direction (dy / dx)
+  int32_t slopeY = 0; // slope in y direction (dx / dy)
+
+  uint32_t stepLengthX = 0; // the length of the ray in one x step
+  uint32_t stepLengthY = 0; // the length of the ray in one y step
+
+  uint32_t rayLengthX = 0; // total length of ray in x steps
+  uint32_t rayLengthY = 0; // total length of ray in y steps
+
+  int16_t rayAngle = (mainPlayer.angle - (PLAYER_FOV / 2) + angle);
+
+  if(rayAngle > 359)
+    rayAngle -= 360;
+  else if(rayAngle < 0)
+    rayAngle += 360;
+
+  uint32_t temp;
+
+  if(rayAngle < 90)
+  {
+    slopeX = tantable[89 - rayAngle] / MAP_HEIGHT;
+    slopeY = -(tantable[rayAngle] / MAP_WIDTH);
+    
+    stepLengthX = ((GRID_WIDTH / MAP_WIDTH) * POWER_16) / sintable[rayAngle];
+    stepLengthY = ((GRID_HEIGHT / MAP_HEIGHT) * POWER_16) / sintable[rayAngle + 90];
+  }
+  else if(rayAngle < 180)
+  {
+    slopeX = -(tantable[rayAngle - 90] / MAP_HEIGHT);
+    slopeY = -(tantable[89 - (rayAngle - 90)] / MAP_WIDTH);
+    
+    stepLengthX = ((GRID_WIDTH / MAP_WIDTH) * POWER_16) / sintable[(rayAngle - 90) + 90];
+    stepLengthY = ((GRID_HEIGHT / MAP_HEIGHT) * POWER_16) / sintable[rayAngle - 90];
+  }
+  else if(rayAngle < 270)
+  {
+    slopeX = -(tantable[89 - (rayAngle - 180)] / MAP_HEIGHT);
+    slopeY = (tantable[rayAngle - 180] / MAP_WIDTH);
+    
+    stepLengthX = ((GRID_WIDTH / MAP_WIDTH) * POWER_16) / sintable[rayAngle - 180];
+    stepLengthY = ((GRID_HEIGHT / MAP_HEIGHT) * POWER_16) / sintable[(rayAngle - 180) + 90];
+  }
+  else
+  {
+    slopeX = (tantable[rayAngle - 270] / MAP_HEIGHT);
+    slopeY = (tantable[89 - (rayAngle - 270)] / MAP_WIDTH);
+    
+    stepLengthX = ((GRID_WIDTH / MAP_WIDTH) * POWER_16) / sintable[(rayAngle - 270) + 90];
+    stepLengthY = ((GRID_HEIGHT / MAP_HEIGHT) * POWER_16) / sintable[rayAngle - 270];
+  }
+
+  while (1)
+  {
+    // check which ray is shorter
+    if(rayLengthX < rayLengthY)
+    {
+       
+    } 
+  } 
 }
 
 void draw2dField()
