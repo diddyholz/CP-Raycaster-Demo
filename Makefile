@@ -3,7 +3,7 @@ $(error You have to define the CAS_SDK variable and point it to the cas-sdk dire
 endif
 
 OUTFILE = app4
-APPNAME = Raycaster Example
+APPNAME = RayCaster Example
 APPAUTHOR = diddyholz
 APPVERSION = v0.01
 
@@ -14,7 +14,7 @@ PYTHON = python
 SOURCEDIR = src
 BUILDDIR = obj
 
-CFLAGS = -mrenesas -mb -m4-nofpu -O2 -ffreestanding -nostartfiles -I $(CAS_SDK)/include -I $(PREFIX)/sh-elf/include -L$(PREFIX)/sh-elf/lib/
+CFLAGS = -mrenesas -mb -m4a-nofpu -O2 -ffreestanding -nostartfiles -I $(CAS_SDK)/include -I $(PREFIX)/sh-elf/include -L$(PREFIX)/sh-elf/lib/
 LDFLAGS = -T linker-script.ld
 BCOPYFLAGS = -R .got*
 

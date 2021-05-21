@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 // sine and cosine * 65536 lookup table (uses angles in degrees)
-int32_t sintable[450] = { 
+const int32_t sintable[450] = { 
 0, 1143, 2287, 
 3429, 4571, 5711, 
 6850, 7986, 9120, 
@@ -157,9 +157,8 @@ int32_t sintable[450] = {
 65446, 65496, 65526, 
 }; 
  
-int32_t tantable[90] = { 
-0, 
-1144, 2289, 3435, 
+const int32_t tantable[90] = { 
+0, 1144, 2289, 3435, 
 4583, 5734, 6888, 
 8047, 9210, 10380, 
 11556, 12739, 13930, 
