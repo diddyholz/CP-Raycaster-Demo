@@ -13,13 +13,23 @@ typedef struct
   int16_t velocity;
 } Player;
 
+typedef struct 
+{
+  uint32_t length;
+  uint16_t finalYPos;
+  uint16_t finalXPos;
+  uint8_t raySide;
+  uint8_t hitType;
+} RayData;
+
 void gameSetup();
 void gameLoop();
 void characterManipulation();
 void playerInput();
-void castAllRays(const uint32_t* rayData);
-uint32_t castRay(uint16_t angle);
+void castAllRays(RayData* rayData);
+RayData castRay(uint16_t angle);
 void draw2dField();
+void draw3dField();
 void drawRectangle(uint16_t x, uint16_t y, uint16_t width, uint16_t height, CASColor color);
 void drawLine(int32_t x1, int32_t y1, int32_t x2, int32_t y2, CASColor color);
 
@@ -27,15 +37,15 @@ uint8_t map[MAP_HEIGHT][MAP_WIDTH] =
 {
   1, 1, 1, 1, 1, 1, 1, 1,
   1, 0, 0, 0, 0, 0, 0, 1,
-  1, 0, 1, 1, 0, 1, 0, 1,
+  1, 0, 2, 2, 0, 2, 0, 1,
   1, 0, 0, 0, 0, 0, 0, 1,
-  1, 0, 1, 0, 0, 1, 0, 1,
+  1, 0, 2, 0, 0, 2, 0, 1,
   1, 0, 0, 0, 0, 0, 0, 1,
   1, 0, 0, 0, 0, 0, 0, 1,
   1, 1, 1, 1, 1, 1, 1, 1
 };
 
-uint32_t rayData[PLAYER_FOV];
+RayData rayData[PLAYER_FOV];
 
 Player mainPlayer;
 
@@ -61,7 +71,10 @@ void gameLoop()
   {
     playerInput();
     characterManipulation();
+    castAllRays(rayData);
     draw2dField();
+    draw3dField();
+    refreshDisplay();
   }
 }
 
@@ -101,7 +114,7 @@ void playerInput()
   }
 }
 
-uint32_t castRay(uint16_t angle)
+RayData castRay(const uint16_t angle)
 {
   int32_t slopeX; // slope in x direction (dy / dx)
   int32_t slopeY; // slope in y direction (dx / dy)
@@ -262,10 +275,6 @@ uint32_t castRay(uint16_t angle)
       // check if the ray hit a wall
       uint8_t mapInfo = map[rayXPosY / (GRID_HEIGHT / MAP_HEIGHT)][rayXPosX / (GRID_WIDTH / MAP_WIDTH) + gridOffsetX];
 
-      if(abs(((rayXPosY / (GRID_HEIGHT / MAP_HEIGHT)) * (GRID_HEIGHT / MAP_HEIGHT)) - rayXPosY) < 1000 && abs(((rayXPosX / (GRID_HEIGHT / MAP_HEIGHT)) * (GRID_HEIGHT / MAP_HEIGHT)) - rayXPosX) < 1000)
-        mapInfo = map[rayXPosY / (GRID_HEIGHT / MAP_HEIGHT)][rayXPosX / (GRID_WIDTH / MAP_WIDTH) + gridOffsetX];
-
-      
       if(mapInfo == 0)
       {
         rayXPosX += xStep;
@@ -276,9 +285,9 @@ uint32_t castRay(uint16_t angle)
       {
         // hit
         // draw line
-        CASColor color;
-        color.asShort = 0x0AA8;
-        drawLine(playerCenterPixelX, playerCenterPixelY, (rayXPosX * (MAP_WIDTH * TILE_SIZE)) / POWER_16, (rayXPosY * (MAP_HEIGHT * TILE_SIZE)) / POWER_16, color);
+        // CASColor color;
+        // color.asShort = 0x0AA8;
+        // drawLine(playerCenterPixelX, playerCenterPixelY, (rayXPosX * (MAP_WIDTH * TILE_SIZE)) / POWER_16, (rayXPosY * (MAP_HEIGHT * TILE_SIZE)) / POWER_16, color);
 
         // refreshDisplay();
         // refreshDisplay();
@@ -295,7 +304,15 @@ uint32_t castRay(uint16_t angle)
         // refreshDisplay();
         // refreshDisplay();
         // refreshDisplay();
-        return rayLengthX;
+
+        RayData rayData;
+        rayData.finalXPos = rayXPosX;
+        rayData.finalYPos = rayXPosY;
+        rayData.length = rayLengthX;
+        rayData.hitType = mapInfo;
+        rayData.raySide = 0;
+
+        return rayData;
       }
     } 
     else
@@ -332,9 +349,9 @@ uint32_t castRay(uint16_t angle)
       {
         // hit
         // draw line
-        CASColor color;
-        color.asShort = 0xA800;
-        drawLine(playerCenterPixelX, playerCenterPixelY, (rayYPosX * (MAP_WIDTH * TILE_SIZE)) / POWER_16, (rayYPosY * (MAP_HEIGHT * TILE_SIZE)) / POWER_16, color);
+        // CASColor color;
+        // color.asShort = 0xA800;
+        // drawLine(playerCenterPixelX, playerCenterPixelY, (rayYPosX * (MAP_WIDTH * TILE_SIZE)) / POWER_16, (rayYPosY * (MAP_HEIGHT * TILE_SIZE)) / POWER_16, color);
 
         // refreshDisplay();
         // refreshDisplay();
@@ -351,15 +368,23 @@ uint32_t castRay(uint16_t angle)
         // refreshDisplay();
         // refreshDisplay();
         // refreshDisplay();
-        return rayLengthY;
+
+        RayData rayData;
+        rayData.finalXPos = rayYPosX;
+        rayData.finalYPos = rayYPosY;
+        rayData.length = rayLengthY;
+        rayData.hitType = mapInfo;
+        rayData.raySide = 1;
+
+        return rayData;
       }
     } 
   } 
 }
 
-void castAllRays(const uint32_t* rayData)
+void castAllRays(RayData* rayData)
 {
-  for(uint8_t x = 0; x < PLAYER_FOV; x += 2)
+  for(uint8_t x = 0; x < PLAYER_FOV; x++)
   {
     rayData[x] = castRay(x);
   }
@@ -382,6 +407,11 @@ void draw2dField()
         color.asShort = 0x0000;
         color.red = 0b11111;
         break;
+      case 2:
+        color.asShort = 0x0000;
+        color.red = 0b11111;
+        color.green = 0b111111;
+        break;
       
       default:
         break;
@@ -399,22 +429,72 @@ void draw2dField()
     }
   }
 
-  // draw player
-  color.asShort = 0x0000;
-  color.green = 0b111111;
-
   uint16_t playerPixelX = (mainPlayer.xPos * (MAP_WIDTH * TILE_SIZE)) / POWER_16;
   uint16_t playerPixelY = (mainPlayer.yPos * (MAP_HEIGHT * TILE_SIZE)) / POWER_16;
   uint16_t playerCenterPixelX = playerPixelX + (PLAYER_SIZE / 2);
   uint16_t playerCenterPixelY = playerPixelY + (PLAYER_SIZE / 2);
+
+  // draw lines
+  for(uint8_t x = 0; x < PLAYER_FOV; x++)
+  {
+    CASColor color;
+    color.asShort = 0x0AA8;
+    drawLine(playerCenterPixelX, playerCenterPixelY, (rayData[x].finalXPos * (MAP_WIDTH * TILE_SIZE)) / POWER_16, (rayData[x].finalYPos * (MAP_HEIGHT * TILE_SIZE)) / POWER_16, color);
+  }
+
+  // draw player
+  color.asShort = 0x0000;
+  color.green = 0b111111;
 
   drawRectangle(playerPixelX, playerPixelY, PLAYER_SIZE, PLAYER_SIZE, color);
 
   // draw player angle line
   uint8_t angleLineSize = 15;
   drawLine(playerCenterPixelX, playerCenterPixelY, playerCenterPixelX + ((sintable[mainPlayer.angle] * angleLineSize) / POWER_16), playerCenterPixelY + ((sintable[mainPlayer.angle + 90] * angleLineSize) / POWER_16), color);
+}
 
-  refreshDisplay();
+void draw3dField()
+{
+  CASColor wallColor;
+  uint16_t wallHeight;
+  uint32_t correctedDistance;
+
+  wallColor.asShort = 0x0000;
+
+  // clear 3d field
+  drawRectangle(0, TOP_OFFSET_3D, DISPLAY_WIDTH, 208, wallColor);
+
+  for(uint8_t x = 0; x < PLAYER_FOV; x++)
+  {
+    correctedDistance = (sintable[x - (PLAYER_FOV / 2) + 90] * rayData[x].length) / POWER_16;
+
+    wallHeight = WALL_HEIGHT_CONSTANT / correctedDistance;
+
+    if(wallHeight > HEIGHT_3D) 
+      wallHeight = HEIGHT_3D;
+
+    switch (rayData[x].hitType)
+    {
+    case 1:
+      wallColor.asShort = WALL_COLOR;
+      break;
+    case 2:
+      wallColor.asShort = 0xC013;
+      break;
+    
+    default:
+      break;
+    }
+
+    if(rayData[x].raySide)
+    {
+      wallColor.red /= 2;
+      wallColor.green /= 2;
+      wallColor.blue /= 2;
+    }
+    // draw the wall
+    drawRectangle((PLAYER_FOV - x) * (DISPLAY_WIDTH / PLAYER_FOV), ((HEIGHT_3D - wallHeight) / 2) + TOP_OFFSET_3D, DISPLAY_WIDTH / PLAYER_FOV, wallHeight, wallColor);    
+  }
 }
 
 void drawRectangle(uint16_t x, uint16_t y, uint16_t width, uint16_t height, CASColor color)
