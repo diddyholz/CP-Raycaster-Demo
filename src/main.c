@@ -67,7 +67,6 @@ uint8_t map[MAP_HEIGHT][MAP_WIDTH] =
   1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
   1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-
 };
 
 RayData rayData[PLAYER_FOV];
@@ -87,8 +86,8 @@ void gameSetup()
   fillFrameBufferS(0x0000);
   refreshDisplay();
 
-  mainPlayer.xPos = 32762;
-  mainPlayer.yPos = 32760;
+  mainPlayer.xPos = 40762;
+  mainPlayer.yPos = 40760;
   mainPlayer.angle = 0;
 }
 
@@ -102,24 +101,25 @@ void gameLoop()
     draw2dField();
     draw3dField();
 
-    // uint8_t * rtcPointer = (uint8_t *)0xA413FEC0;
-    // uint8_t * secondsCounter = (uint8_t *)0xA413FEC2;
-
-    // char buffer[3] = { 0, 0, 0 };
-    // buffer[0] = (((0b01110000 & *secondsCounter) >>4) + '0');
-    // buffer[1] = ((0b00001111 & *secondsCounter) + '0');
-
-    // printf(buffer, 0, 0, 0);
-
     refreshDisplay();
   }
 }
 
 void characterManipulation()
 {
-  mainPlayer.xPos += ((sintable[mainPlayer.angle] * mainPlayer.velocity) / BIT_16);
-  mainPlayer.yPos += ((sintable[mainPlayer.angle + 90] * mainPlayer.velocity) / BIT_16);
-  
+  uint16_t oldXPos = mainPlayer.xPos;
+  uint16_t oldYPos = mainPlayer.yPos;
+  int16_t nextXPosOffset = ((sintable[mainPlayer.angle] * mainPlayer.velocity) / BIT_16);
+  int16_t nextYPosOffset = ((sintable[mainPlayer.angle + 90] * mainPlayer.velocity) / BIT_16);
+
+  // check if can move to y direction
+  if(map[(oldYPos + nextYPosOffset) / (GRID_HEIGHT / MAP_HEIGHT)][oldXPos / (GRID_WIDTH / MAP_WIDTH)] == 0)
+    mainPlayer.yPos += nextYPosOffset;
+
+  // check if can move to x direction
+  if(map[oldYPos / (GRID_HEIGHT / MAP_HEIGHT)][(oldXPos + nextXPosOffset) / (GRID_WIDTH / MAP_WIDTH)] == 0)
+    mainPlayer.xPos += nextXPosOffset;
+ 
   mainPlayer.velocity = 0;
 }
 
