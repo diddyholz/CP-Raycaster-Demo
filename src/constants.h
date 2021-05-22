@@ -3,7 +3,7 @@
 
 #include <cas-sdk/display.h>
 
-#define POWER_16  0xFFFF
+#define BIT_16  0x10000
 
 #define sgn(x) ((x<0)?-1:((x>0)?1:0)) /* macro to return the sign of a number */
 #define inDisplay(x, y) ((x < DISPLAY_WIDTH && y < DISPLAY_HEIGHT)? 1, 0) /* macro to check if in display */
@@ -11,8 +11,8 @@
 #define MAP_HEIGHT  8
 #define MAP_WIDTH   8
 
-#define GRID_HEIGHT  POWER_16
-#define GRID_WIDTH   POWER_16
+#define GRID_HEIGHT  BIT_16
+#define GRID_WIDTH   BIT_16
 
 #define TILE_SIZE   40
 

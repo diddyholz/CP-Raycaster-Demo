@@ -80,8 +80,8 @@ void gameLoop()
 
 void characterManipulation()
 {
-  mainPlayer.xPos += ((sintable[mainPlayer.angle] * mainPlayer.velocity) / POWER_16);
-  mainPlayer.yPos += ((sintable[mainPlayer.angle + 90] * mainPlayer.velocity) / POWER_16);
+  mainPlayer.xPos += ((sintable[mainPlayer.angle] * mainPlayer.velocity) / BIT_16);
+  mainPlayer.yPos += ((sintable[mainPlayer.angle + 90] * mainPlayer.velocity) / BIT_16);
   
   mainPlayer.velocity = 0;
 }
@@ -137,8 +137,8 @@ RayData castRay(const uint16_t angle)
   int8_t gridOffsetY = 0;
 
   // to draw line
-  uint16_t playerPixelX = (mainPlayer.xPos * (MAP_WIDTH * TILE_SIZE)) / POWER_16;
-  uint16_t playerPixelY = (mainPlayer.yPos * (MAP_HEIGHT * TILE_SIZE)) / POWER_16;
+  uint16_t playerPixelX = (mainPlayer.xPos * (MAP_WIDTH * TILE_SIZE)) / BIT_16;
+  uint16_t playerPixelY = (mainPlayer.yPos * (MAP_HEIGHT * TILE_SIZE)) / BIT_16;
   uint16_t playerCenterPixelX = playerPixelX + (PLAYER_SIZE / 2);
   uint16_t playerCenterPixelY = playerPixelY + (PLAYER_SIZE / 2);
 
@@ -153,90 +153,90 @@ RayData castRay(const uint16_t angle)
 
   if(rayAngle < 90)
   {
-    slopeX = (tantable[89 - rayAngle] / MAP_HEIGHT);
+    slopeX = (tantable[90 - rayAngle] / MAP_HEIGHT);
     slopeY = -(tantable[rayAngle] / MAP_WIDTH);
     
-    stepLengthX = ((GRID_WIDTH / MAP_WIDTH) * POWER_16) / sintable[rayAngle];
-    stepLengthY = ((GRID_HEIGHT / MAP_HEIGHT) * POWER_16) / sintable[rayAngle + 90];
+    stepLengthX = ((GRID_WIDTH / MAP_WIDTH) * BIT_16) / sintable[rayAngle];
+    stepLengthY = ((GRID_HEIGHT / MAP_HEIGHT) * BIT_16) / sintable[rayAngle + 90];
 
     xStep = -(GRID_WIDTH / MAP_WIDTH);
     yStep = (GRID_HEIGHT / MAP_HEIGHT);
 
     rayXPosX = ((mainPlayer.xPos / (GRID_WIDTH / MAP_WIDTH)) * (GRID_WIDTH / MAP_WIDTH));
-    rayXPosY = (((mainPlayer.xPos - rayXPosX) * tantable[89 - rayAngle]) / POWER_16) + mainPlayer.yPos;
+    rayXPosY = (((mainPlayer.xPos - rayXPosX) * tantable[90 - rayAngle]) / BIT_16) + mainPlayer.yPos;
     rayYPosY = (((mainPlayer.yPos / (GRID_HEIGHT / MAP_HEIGHT)) + 1) * (GRID_HEIGHT / MAP_HEIGHT));
-    rayYPosX = (((rayYPosY - mainPlayer.yPos) * -(tantable[rayAngle]) / POWER_16)) + mainPlayer.xPos;
+    rayYPosX = (((rayYPosY - mainPlayer.yPos) * -(tantable[rayAngle]) / BIT_16)) + mainPlayer.xPos;
 
     // calculate inital ray length to first map border
-    rayLengthX = ((mainPlayer.xPos - rayXPosX) * POWER_16) / sintable[rayAngle];
-    rayLengthY = ((rayYPosY - mainPlayer.yPos) * POWER_16) / sintable[rayAngle + 90];
+    rayLengthX = ((mainPlayer.xPos - rayXPosX) * BIT_16) / sintable[rayAngle];
+    rayLengthY = ((rayYPosY - mainPlayer.yPos) * BIT_16) / sintable[rayAngle + 90];
 
     gridOffsetX = -1;
   }
   else if(rayAngle < 180)
   {
     slopeX = -(tantable[rayAngle - 90] / MAP_HEIGHT);
-    slopeY = -(tantable[89 - (rayAngle - 90)] / MAP_WIDTH);
+    slopeY = -(tantable[90 - (rayAngle - 90)] / MAP_WIDTH);
     
-    stepLengthX = ((GRID_WIDTH / MAP_WIDTH) * POWER_16) / sintable[(rayAngle - 90) + 90];
-    stepLengthY = ((GRID_HEIGHT / MAP_HEIGHT) * POWER_16) / sintable[rayAngle - 90];
+    stepLengthX = ((GRID_WIDTH / MAP_WIDTH) * BIT_16) / sintable[(rayAngle - 90) + 90];
+    stepLengthY = ((GRID_HEIGHT / MAP_HEIGHT) * BIT_16) / sintable[rayAngle - 90];
 
     xStep = -(GRID_WIDTH / MAP_WIDTH);
     yStep = -(GRID_HEIGHT / MAP_HEIGHT);
 
     rayXPosX = ((mainPlayer.xPos / (GRID_WIDTH / MAP_WIDTH)) * (GRID_WIDTH / MAP_WIDTH));
-    rayXPosY = (((mainPlayer.xPos - rayXPosX) * -(tantable[rayAngle - 90])) / POWER_16) + mainPlayer.yPos;
+    rayXPosY = (((mainPlayer.xPos - rayXPosX) * -(tantable[rayAngle - 90])) / BIT_16) + mainPlayer.yPos;
     rayYPosY = (((mainPlayer.yPos / (GRID_HEIGHT / MAP_HEIGHT))) * (GRID_HEIGHT / MAP_HEIGHT));
-    rayYPosX = (((mainPlayer.yPos - rayYPosY) * -(tantable[89 - (rayAngle - 90)]) / POWER_16)) + mainPlayer.xPos;
+    rayYPosX = (((mainPlayer.yPos - rayYPosY) * -(tantable[90 - (rayAngle - 90)]) / BIT_16)) + mainPlayer.xPos;
 
     // calculate inital ray length to first map border
-    rayLengthX = ((mainPlayer.xPos - rayXPosX) * POWER_16) / sintable[(rayAngle - 90) + 90];
-    rayLengthY = ((mainPlayer.yPos - rayYPosY) * POWER_16) / sintable[rayAngle - 90];
+    rayLengthX = ((mainPlayer.xPos - rayXPosX) * BIT_16) / sintable[(rayAngle - 90) + 90];
+    rayLengthY = ((mainPlayer.yPos - rayYPosY) * BIT_16) / sintable[rayAngle - 90];
 
     gridOffsetX = -1;
     gridOffsetY = -1;
   }
   else if(rayAngle < 270)
   {
-    slopeX = -(tantable[89 - (rayAngle - 180)] / MAP_HEIGHT);
+    slopeX = -(tantable[90 - (rayAngle - 180)] / MAP_HEIGHT);
     slopeY = (tantable[rayAngle - 180] / MAP_WIDTH);
     
-    stepLengthX = ((GRID_WIDTH / MAP_WIDTH) * POWER_16) / sintable[rayAngle - 180];
-    stepLengthY = ((GRID_HEIGHT / MAP_HEIGHT) * POWER_16) / sintable[(rayAngle - 180) + 90];
+    stepLengthX = ((GRID_WIDTH / MAP_WIDTH) * BIT_16) / sintable[rayAngle - 180];
+    stepLengthY = ((GRID_HEIGHT / MAP_HEIGHT) * BIT_16) / sintable[(rayAngle - 180) + 90];
 
     xStep = (GRID_WIDTH / MAP_WIDTH);
     yStep = -(GRID_HEIGHT / MAP_HEIGHT);
 
     rayXPosX = (((mainPlayer.xPos / (GRID_WIDTH / MAP_WIDTH)) + 1) * (GRID_WIDTH / MAP_WIDTH));
-    rayXPosY = (((rayXPosX - mainPlayer.xPos) * -(tantable[89 - (rayAngle - 180)])) / POWER_16) + mainPlayer.yPos;
+    rayXPosY = (((rayXPosX - mainPlayer.xPos) * -(tantable[90 - (rayAngle - 180)])) / BIT_16) + mainPlayer.yPos;
     rayYPosY = ((mainPlayer.yPos / (GRID_HEIGHT / MAP_HEIGHT)) * (GRID_HEIGHT / MAP_HEIGHT));
-    rayYPosX = (((mainPlayer.yPos - rayYPosY) * (tantable[rayAngle - 180]) / POWER_16)) + mainPlayer.xPos;
+    rayYPosX = (((mainPlayer.yPos - rayYPosY) * (tantable[rayAngle - 180]) / BIT_16)) + mainPlayer.xPos;
 
     // calculate inital ray length to first map border
-    rayLengthX = ((rayXPosX - mainPlayer.xPos) * POWER_16) / sintable[rayAngle - 180];
-    rayLengthY = ((mainPlayer.yPos - rayYPosY) * POWER_16) / sintable[(rayAngle - 180) + 90];
+    rayLengthX = ((rayXPosX - mainPlayer.xPos) * BIT_16) / sintable[rayAngle - 180];
+    rayLengthY = ((mainPlayer.yPos - rayYPosY) * BIT_16) / sintable[(rayAngle - 180) + 90];
 
     gridOffsetY = -1;
   }
   else
   {
     slopeX = (tantable[rayAngle - 270] / MAP_HEIGHT);
-    slopeY = (tantable[89 - (rayAngle - 270)] / MAP_WIDTH);
+    slopeY = (tantable[90 - (rayAngle - 270)] / MAP_WIDTH);
     
-    stepLengthX = ((GRID_WIDTH / MAP_WIDTH) * POWER_16) / sintable[(rayAngle - 270) + 90];
-    stepLengthY = ((GRID_HEIGHT / MAP_HEIGHT) * POWER_16) / sintable[rayAngle - 270];
+    stepLengthX = ((GRID_WIDTH / MAP_WIDTH) * BIT_16) / sintable[(rayAngle - 270) + 90];
+    stepLengthY = ((GRID_HEIGHT / MAP_HEIGHT) * BIT_16) / sintable[rayAngle - 270];
 
     xStep = (GRID_WIDTH / MAP_WIDTH);
     yStep = (GRID_HEIGHT / MAP_HEIGHT);
 
     rayXPosX = (((mainPlayer.xPos / (GRID_WIDTH / MAP_WIDTH)) + 1) * (GRID_WIDTH / MAP_WIDTH));
-    rayXPosY = (((rayXPosX - mainPlayer.xPos) * (tantable[rayAngle - 270])) / POWER_16) + mainPlayer.yPos;
+    rayXPosY = (((rayXPosX - mainPlayer.xPos) * (tantable[rayAngle - 270])) / BIT_16) + mainPlayer.yPos;
     rayYPosY = (((mainPlayer.yPos / (GRID_HEIGHT / MAP_HEIGHT)) + 1) * (GRID_HEIGHT / MAP_HEIGHT));
-    rayYPosX = (((rayYPosY - mainPlayer.yPos) * (tantable[89 - (rayAngle - 270)]) / POWER_16)) + mainPlayer.xPos;
+    rayYPosX = (((rayYPosY - mainPlayer.yPos) * (tantable[90 - (rayAngle - 270)]) / BIT_16)) + mainPlayer.xPos;
 
     // calculate inital ray length to first map border
-    rayLengthX = ((rayXPosX - mainPlayer.xPos) * POWER_16) / sintable[(rayAngle - 270) + 90];
-    rayLengthY = ((rayYPosY - mainPlayer.yPos) * POWER_16) / sintable[rayAngle - 270];
+    rayLengthX = ((rayXPosX - mainPlayer.xPos) * BIT_16) / sintable[(rayAngle - 270) + 90];
+    rayLengthY = ((rayYPosY - mainPlayer.yPos) * BIT_16) / sintable[rayAngle - 270];
   }
 
   // printHexWord(rayAngle, 0, 0);
@@ -254,7 +254,7 @@ RayData castRay(const uint16_t angle)
     {
         // CASColor color;
         // color.asShort = 0x0AA8;
-        // drawLine(playerCenterPixelX, playerCenterPixelY, (rayXPosX * (MAP_WIDTH * TILE_SIZE)) / POWER_16, (rayXPosY * (MAP_HEIGHT * TILE_SIZE)) / POWER_16, color);
+        // drawLine(playerCenterPixelX, playerCenterPixelY, (rayXPosX * (MAP_WIDTH * TILE_SIZE)) / BIT_16, (rayXPosY * (MAP_HEIGHT * TILE_SIZE)) / BIT_16, color);
 
         // refreshDisplay();
         // refreshDisplay();
@@ -287,7 +287,7 @@ RayData castRay(const uint16_t angle)
         // draw line
         // CASColor color;
         // color.asShort = 0x0AA8;
-        // drawLine(playerCenterPixelX, playerCenterPixelY, (rayXPosX * (MAP_WIDTH * TILE_SIZE)) / POWER_16, (rayXPosY * (MAP_HEIGHT * TILE_SIZE)) / POWER_16, color);
+        // drawLine(playerCenterPixelX, playerCenterPixelY, (rayXPosX * (MAP_WIDTH * TILE_SIZE)) / BIT_16, (rayXPosY * (MAP_HEIGHT * TILE_SIZE)) / BIT_16, color);
 
         // refreshDisplay();
         // refreshDisplay();
@@ -319,7 +319,7 @@ RayData castRay(const uint16_t angle)
     {
         // CASColor color;
         // color.asShort = 0xA800;
-        // drawLine(playerCenterPixelX, playerCenterPixelY, (rayYPosX * (MAP_WIDTH * TILE_SIZE)) / POWER_16, (rayYPosY * (MAP_HEIGHT * TILE_SIZE)) / POWER_16, color);
+        // drawLine(playerCenterPixelX, playerCenterPixelY, (rayYPosX * (MAP_WIDTH * TILE_SIZE)) / BIT_16, (rayYPosY * (MAP_HEIGHT * TILE_SIZE)) / BIT_16, color);
 
         // refreshDisplay();
         // refreshDisplay();
@@ -351,7 +351,7 @@ RayData castRay(const uint16_t angle)
         // draw line
         // CASColor color;
         // color.asShort = 0xA800;
-        // drawLine(playerCenterPixelX, playerCenterPixelY, (rayYPosX * (MAP_WIDTH * TILE_SIZE)) / POWER_16, (rayYPosY * (MAP_HEIGHT * TILE_SIZE)) / POWER_16, color);
+        // drawLine(playerCenterPixelX, playerCenterPixelY, (rayYPosX * (MAP_WIDTH * TILE_SIZE)) / BIT_16, (rayYPosY * (MAP_HEIGHT * TILE_SIZE)) / BIT_16, color);
 
         // refreshDisplay();
         // refreshDisplay();
@@ -429,8 +429,8 @@ void draw2dField()
     }
   }
 
-  uint16_t playerPixelX = (mainPlayer.xPos * (MAP_WIDTH * TILE_SIZE)) / POWER_16;
-  uint16_t playerPixelY = (mainPlayer.yPos * (MAP_HEIGHT * TILE_SIZE)) / POWER_16;
+  uint16_t playerPixelX = (mainPlayer.xPos * (MAP_WIDTH * TILE_SIZE)) / BIT_16;
+  uint16_t playerPixelY = (mainPlayer.yPos * (MAP_HEIGHT * TILE_SIZE)) / BIT_16;
   uint16_t playerCenterPixelX = playerPixelX + (PLAYER_SIZE / 2);
   uint16_t playerCenterPixelY = playerPixelY + (PLAYER_SIZE / 2);
 
@@ -439,7 +439,7 @@ void draw2dField()
   {
     CASColor color;
     color.asShort = 0x0AA8;
-    drawLine(playerCenterPixelX, playerCenterPixelY, (rayData[x].finalXPos * (MAP_WIDTH * TILE_SIZE)) / POWER_16, (rayData[x].finalYPos * (MAP_HEIGHT * TILE_SIZE)) / POWER_16, color);
+    drawLine(playerCenterPixelX, playerCenterPixelY, (rayData[x].finalXPos * (MAP_WIDTH * TILE_SIZE)) / BIT_16, (rayData[x].finalYPos * (MAP_HEIGHT * TILE_SIZE)) / BIT_16, color);
   }
 
   // draw player
@@ -450,7 +450,7 @@ void draw2dField()
 
   // draw player angle line
   uint8_t angleLineSize = 15;
-  drawLine(playerCenterPixelX, playerCenterPixelY, playerCenterPixelX + ((sintable[mainPlayer.angle] * angleLineSize) / POWER_16), playerCenterPixelY + ((sintable[mainPlayer.angle + 90] * angleLineSize) / POWER_16), color);
+  drawLine(playerCenterPixelX, playerCenterPixelY, playerCenterPixelX + ((sintable[mainPlayer.angle] * angleLineSize) / BIT_16), playerCenterPixelY + ((sintable[mainPlayer.angle + 90] * angleLineSize) / BIT_16), color);
 }
 
 void draw3dField()
@@ -466,7 +466,7 @@ void draw3dField()
 
   for(uint8_t x = 0; x < PLAYER_FOV; x++)
   {
-    correctedDistance = (sintable[x - (PLAYER_FOV / 2) + 90] * rayData[x].length) / POWER_16;
+    correctedDistance = (sintable[x - (PLAYER_FOV / 2) + 90] * rayData[x].length) / BIT_16;
 
     wallHeight = WALL_HEIGHT_CONSTANT / correctedDistance;
 
