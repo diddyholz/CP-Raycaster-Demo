@@ -35,19 +35,29 @@ void drawLine(int32_t x1, int32_t y1, int32_t x2, int32_t y2, CASColor color);
 
 uint8_t map[MAP_HEIGHT][MAP_WIDTH] =
 {
-  1, 1, 1, 1, 1, 1, 1, 1,
-  1, 0, 0, 0, 0, 0, 0, 1,
-  1, 0, 2, 2, 0, 2, 0, 1,
-  1, 0, 0, 0, 0, 0, 0, 1,
-  1, 0, 2, 0, 0, 2, 0, 1,
-  1, 0, 0, 0, 0, 0, 0, 1,
-  1, 0, 0, 0, 0, 0, 0, 1,
-  1, 1, 1, 1, 1, 1, 1, 1
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 1,
+  1, 0, 0, 0, 2, 2, 2, 0, 0, 2, 2, 2, 0, 0, 0, 1,
+  1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1,
+  1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1,
+  1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1,
+  1, 0, 0, 0, 2, 0, 0, 1, 1, 0, 0, 2, 0, 0, 0, 1,
+  1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1,
+  1, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 };
 
 RayData rayData[PLAYER_FOV];
 
 Player mainPlayer;
+
+uint8_t engineRunning = 1;
 
 void main()
 {
@@ -67,13 +77,23 @@ void gameSetup()
 
 void gameLoop()
 {
-  while (1)
+  while (engineRunning)
   {
     playerInput();
     characterManipulation();
     castAllRays(rayData);
     draw2dField();
     draw3dField();
+
+    // uint8_t * rtcPointer = (uint8_t *)0xA413FEC0;
+    // uint8_t * secondsCounter = (uint8_t *)0xA413FEC2;
+
+    // char buffer[3] = { 0, 0, 0 };
+    // buffer[0] = (((0b01110000 & *secondsCounter) >>4) + '0');
+    // buffer[1] = ((0b00001111 & *secondsCounter) + '0');
+
+    // printf(buffer, 0, 0, 0);
+
     refreshDisplay();
   }
 }
@@ -112,6 +132,9 @@ void playerInput()
     if(mainPlayer.angle == 360)
       mainPlayer.angle = 0;
   }
+
+  if((input.bufferOne & KEY_SHIFT_1) && (input.bufferOne & KEY_ON_CLEAR_1))
+    engineRunning = 0;
 }
 
 RayData castRay(const uint16_t angle)
@@ -137,10 +160,10 @@ RayData castRay(const uint16_t angle)
   int8_t gridOffsetY = 0;
 
   // to draw line
-  uint16_t playerPixelX = (mainPlayer.xPos * (MAP_WIDTH * TILE_SIZE)) / BIT_16;
-  uint16_t playerPixelY = (mainPlayer.yPos * (MAP_HEIGHT * TILE_SIZE)) / BIT_16;
-  uint16_t playerCenterPixelX = playerPixelX + (PLAYER_SIZE / 2);
-  uint16_t playerCenterPixelY = playerPixelY + (PLAYER_SIZE / 2);
+  // uint16_t playerPixelX = (mainPlayer.xPos * (MAP_WIDTH * TILE_SIZE)) / BIT_16;
+  // uint16_t playerPixelY = (mainPlayer.yPos * (MAP_HEIGHT * TILE_SIZE)) / BIT_16;
+  // uint16_t playerCenterPixelX = playerPixelX + (PLAYER_SIZE / 2);
+  // uint16_t playerCenterPixelY = playerPixelY + (PLAYER_SIZE / 2);
 
   int16_t rayAngle = (mainPlayer.angle - (PLAYER_FOV / 2) + angle);
 
@@ -459,10 +482,12 @@ void draw3dField()
   uint16_t wallHeight;
   uint32_t correctedDistance;
 
-  wallColor.asShort = 0x0000;
+  // draw ceiling and floor
+  wallColor.asShort = CEILING_COLOR;
+  drawRectangle(10, TOP_OFFSET_3D, DISPLAY_WIDTH - 20, 104, wallColor);
 
-  // clear 3d field
-  drawRectangle(0, TOP_OFFSET_3D, DISPLAY_WIDTH, 208, wallColor);
+  wallColor.asShort = FLOOR_COLOR;
+  drawRectangle(10, TOP_OFFSET_3D + 104, DISPLAY_WIDTH - 20, 104, wallColor);
 
   for(uint8_t x = 0; x < PLAYER_FOV; x++)
   {
@@ -492,8 +517,9 @@ void draw3dField()
       wallColor.green /= 2;
       wallColor.blue /= 2;
     }
+
     // draw the wall
-    drawRectangle((PLAYER_FOV - x) * (DISPLAY_WIDTH / PLAYER_FOV), ((HEIGHT_3D - wallHeight) / 2) + TOP_OFFSET_3D, DISPLAY_WIDTH / PLAYER_FOV, wallHeight, wallColor);    
+    drawRectangle(((PLAYER_FOV - 1) - x) * (DISPLAY_WIDTH / PLAYER_FOV) + 10, ((HEIGHT_3D - wallHeight) / 2) + TOP_OFFSET_3D, DISPLAY_WIDTH / PLAYER_FOV, wallHeight, wallColor);    
   }
 }
 

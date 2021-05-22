@@ -14,7 +14,7 @@ PYTHON = python
 SOURCEDIR = src
 BUILDDIR = obj
 
-CFLAGS = -mrenesas -mb -m4a-nofpu -O2 -ffreestanding -nostartfiles -I $(CAS_SDK)/include -I $(PREFIX)/sh-elf/include -L$(PREFIX)/sh-elf/lib/
+CFLAGS = -mrenesas -mb -m4a-nofpu -O3 -ffreestanding -nostartfiles -I $(CAS_SDK)/include -I $(PREFIX)/sh-elf/include -L$(PREFIX)/sh-elf/lib/
 LDFLAGS = -T linker-script.ld
 BCOPYFLAGS = -R .got*
 
