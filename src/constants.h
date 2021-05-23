@@ -27,11 +27,11 @@
 #define WALL_HEIGHT_CONSTANT  800000
 #define WALL_COLOR 0x47E0
 
-#define TEXTURE_RES 8
+#define TEXTURE_RES 16
 #define TEXTURE_COUNT 2
 
 #define CEILING_COLOR 0x6E7F
-#define FLOOR_COLOR   0x6B6D
+#define FLOOR_COLOR   0x6620
 
 
 #endif
