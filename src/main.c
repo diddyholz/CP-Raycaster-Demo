@@ -528,11 +528,12 @@ void draw3dField()
       break;
     }
 
+    // wall side shading
     if(rayData[x].raySide)
     {
-      wallColor.red /= 2;
-      wallColor.green /= 2;
-      wallColor.blue /= 2;
+      wallColor.red = (wallColor.red * BIT_16) / 85196;
+      wallColor.green = (wallColor.green * BIT_16) / 85196;
+      wallColor.blue = (wallColor.blue * BIT_16) / 85196;
     }
 
     // draw the wall
