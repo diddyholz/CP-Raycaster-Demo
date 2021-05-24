@@ -22,6 +22,16 @@ typedef struct
   uint8_t hitType;
 } RayData;
 
+typedef struct
+{
+  uint8_t texture;
+  uint8_t isVisible;
+  uint16_t angle;
+  uint16_t xPos;
+  uint16_t yPos;
+  uint32_t distanceToPlayer;
+} Sprite;
+
 void gameSetup();
 void gameLoop();
 void characterManipulation();
@@ -30,6 +40,8 @@ void castAllRays(RayData* rayData);
 RayData castRay(uint16_t angle);
 void draw2dField();
 void draw3dField();
+void drawSprites();
+uint8_t fixedATan(uint32_t tan);
 void drawRectangle(uint16_t x, uint16_t y, uint16_t width, uint16_t height, CASColor color);
 void drawLine(int32_t x1, int32_t y1, int32_t x2, int32_t y2, CASColor color);
 
@@ -204,10 +216,15 @@ uint16_t textureArray[TEXTURE_COUNT][TEXTURE_RES][TEXTURE_RES] =
   0xd5d2, 0xd5d2, 0xd5d2, 0xd5d2, 0xd5d2, 0xd5d2, 0xd5d2, 0xd5d2, 0xd5d2, 0xd5d2, 0xd5d2, 0xd5d2, 0xd5d2, 0xd5d2, 0xd5d2, 0xd5d2,
 };
 
+Sprite spriteArray[SPRITE_MAX_COUNT];
+
+uint16_t spriteTextureArray[SPRITE_TEXTURE_COUNT][SPRITE_TEXTURE_RES][SPRITE_TEXTURE_RES];
+
 RayData rayData[DISPLAY_WIDTH - 20];
 
 Player mainPlayer;
 
+uint8_t spriteCount = 0;
 uint8_t engineRunning = 1;
 uint8_t display2dField = 1;
 uint8_t shiftPressed = 0;
@@ -226,6 +243,7 @@ void gameSetup()
   mainPlayer.xPos = 40762;
   mainPlayer.yPos = 40760;
   mainPlayer.angle = 0;
+  mainPlayer.velocity = 0; 
 }
 
 void gameLoop()
@@ -268,11 +286,11 @@ void playerInput()
 
   if(input.bufferTwo & KEY_DOWN_2) 
   {
-    mainPlayer.velocity = -500;
+    mainPlayer.velocity = -PLAYER_MAX_VELOCITY;
   }
   if(input.bufferTwo & KEY_UP_2)
   {
-    mainPlayer.velocity = 500;
+    mainPlayer.velocity = PLAYER_MAX_VELOCITY;
   }
   if(input.bufferOne & KEY_RIGHT_1)
   {
@@ -623,7 +641,7 @@ void draw2dField()
   uint16_t playerCenterPixelY = playerPixelY + (PLAYER_SIZE / 2);
 
   // draw lines
-  for(uint16_t x = 0; x < (DISPLAY_WIDTH - 20); x++)
+  for(uint16_t x = 2; x < (DISPLAY_WIDTH - 20); x += 4)
   {
     CASColor color;
     color.asShort = 0x0AA8;
@@ -696,11 +714,166 @@ void draw3dField()
       }
 
       // draw the wall
-      drawRectangle(((DISPLAY_WIDTH - 21) - x) + 10, ((HEIGHT_3D - wallHeight) / 2) + TOP_OFFSET_3D + pixelRow, 1, 1, wallColor);    
+      frameBuffer[((HEIGHT_3D - wallHeight) / 2) + TOP_OFFSET_3D + pixelRow][((DISPLAY_WIDTH - 21) - x) + 10] = wallColor.asShort;    
 
       currentTextureY += textureYStep;
     }
   }
+}
+
+void drawSprites()
+{
+  for(uint8_t spriteId = 0; spriteId < spriteCount; spriteId++)
+  {
+    // // calculate the (distance / 2)² and angle of the sprites from 0° 
+    // spriteArray[spriteId].distanceToPlayer = ((((mainPlayer.xPos - spriteArray[spriteId].xPos) / 2) * ((mainPlayer.xPos - spriteArray[spriteId].xPos) / 2)) + 
+    //   (((mainPlayer.yPos - spriteArray[spriteId].yPos) / 2) * ((mainPlayer.yPos - spriteArray[spriteId].yPos) / 2))); // no squareroot will be used, as that would be too slow
+
+    uint32_t oppositeSide;
+    uint32_t adjacentSide;
+
+    if(spriteArray[spriteId].xPos > (mainPlayer.xPos / 2))
+    {
+      if(spriteArray[spriteId].yPos > (mainPlayer.yPos / 2))
+      {
+        spriteArray[spriteId].angle = 0;
+        oppositeSide = (spriteArray[spriteId].xPos - mainPlayer.xPos);
+        adjacentSide = (spriteArray[spriteId].yPos - mainPlayer.yPos);
+      }
+      else
+      {
+        spriteArray[spriteId].angle = 90;
+        oppositeSide = (mainPlayer.yPos - spriteArray[spriteId].yPos);
+        adjacentSide = (spriteArray[spriteId].xPos - mainPlayer.xPos);
+      }
+    }
+    else
+    {
+      if(spriteArray[spriteId].yPos > (mainPlayer.yPos / 2))
+      {
+        spriteArray[spriteId].angle = 270;
+        oppositeSide = (spriteArray[spriteId].yPos - mainPlayer.yPos);
+        adjacentSide = (mainPlayer.xPos - spriteArray[spriteId].xPos);
+      }
+      else
+      {
+        spriteArray[spriteId].angle = 180;
+        oppositeSide = (mainPlayer.xPos - spriteArray[spriteId].xPos);
+        adjacentSide = (mainPlayer.yPos - spriteArray[spriteId].yPos);
+      }
+    }    
+
+    uint32_t tan = (oppositeSide * BIT_16) / adjacentSide;
+    uint8_t angle = fixedATan(tan);
+    spriteArray[spriteId].distanceToPlayer = (oppositeSide * BIT_16) / sintable[angle];
+
+    spriteArray[spriteId].angle += angle;
+  }
+
+  // sort all sprites by their distance to the player
+  qsort(spriteArray, spriteCount, sizeof(Sprite), compareSpriteDistance);
+
+  // finally draw the sprites
+  for(uint8_t spriteId = 0; spriteId < spriteCount; spriteId++)
+  {
+    if(!spriteArray[spriteId].isVisible)
+      continue;
+
+    int16_t angleToPlayer = spriteArray[spriteId].angle - mainPlayer.angle + (PLAYER_FOV / 2);
+
+    // continue if sprite is behind player
+    if(angleToPlayer < -60 || angleToPlayer > 120)
+      continue;
+
+    // calculate width and height
+    uint16_t size = WALL_HEIGHT_CONSTANT / spriteArray[spriteId].distanceToPlayer;
+    uint32_t step = (SPRITE_TEXTURE_RES * BIT_16) / size;
+    uint32_t currentXStep = 0;
+    uint32_t currentYStep = 0;
+    
+    int16_t viewX = (angleToPlayer * 5) - (size / 2);
+    int16_t viewY;
+
+    uint16_t pixelColor;
+
+    for(uint16_t column = 0; column < size; column++)
+    {
+      // check if in view
+      if((viewX < 0) || (viewX > (DISPLAY_WIDTH - 20)))
+      {
+        viewX++;
+        currentXStep += step;
+        continue;
+      }
+
+      // check if behind wall
+      if(rayData[viewX].length < spriteArray[spriteId].distanceToPlayer)
+      {
+        viewX++;
+        currentXStep += step;
+        continue;
+      }
+
+      viewY = (HEIGHT_3D - size / 2)
+
+      for(uint16_t row = 0; row < size; size++)
+      {
+        if((viewY < 0) || (viewY > HEIGHT_3D))
+        {
+          viewY++;
+          currentYStep += step;
+          continue;
+        }
+
+        pixelColor = spriteTextureArray[spriteArray[spriteId].texture][viewY / BIT_16][viewX / BIT_16];
+
+        if(pixelColor == 0x0000)
+        {
+          viewY++;
+          currentYStep += step;
+          continue;
+        }
+
+        frameBuffer[viewY + TOP_OFFSET_3D][viewX + 10] = pixelColor;
+
+        viewY++;
+        currentYStep += step;
+      }
+
+      currentXStep += step;
+      viewX++;
+    }
+  }
+}
+
+int compareSpriteDistance(const void * elem1, const void * elem2) 
+{
+    Sprite *f = (Sprite*)elem1;
+    Sprite *s = (Sprite*)elem2;
+
+    return (f->distanceToPlayer > s->distanceToPlayer) - (f->distanceToPlayer < s->distanceToPlayer);
+}
+
+uint8_t fixedATan(uint32_t tan)
+{
+  // loop through tangent table and check which angle is almost the calculated tangent for the sprite location
+  // (basically just an overcomplicated atan for fixed point angles)
+  uint16_t lowestDeviation = 65536;
+  uint8_t angleWithLowestDeviation;
+  uint32_t currentDeviation;
+
+  for(uint8_t x = 0; x < 90; x++)
+  {
+    currentDeviation = ((abs(tantable[x] - tan) * (BIT_16 / 64)) / tan);
+
+    if(currentDeviation < lowestDeviation)
+    { 
+      lowestDeviation = currentDeviation;
+      angleWithLowestDeviation = x;
+    }
+  }
+
+  return angleWithLowestDeviation; 
 }
 
 void drawRectangle(uint16_t x, uint16_t y, uint16_t width, uint16_t height, CASColor color)
