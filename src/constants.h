@@ -26,7 +26,6 @@
 #define HEIGHT_3D 208
 
 #define WALL_HEIGHT_CONSTANT  560000
-#define WALL_COLOR 0x47E0
 
 #define TEXTURE_RES 32
 #define TEXTURE_COUNT 2
@@ -34,10 +33,17 @@
 #define SPRITE_MAX_COUNT 40
 #define SPRITE_TEXTURE_COUNT 1
 #define SPRITE_TEXTURE_RES 64
-#define SPRITE_SIZE_CONSTANT ((WALL_HEIGHT_CONSTANT * (BIT_16 / 2)) * (WALL_HEIGHT_CONSTANT * (BIT_16 / 2)))
 
 #define CEILING_COLOR 0x6E7F
 #define FLOOR_COLOR   0x6620
+
+#define BRAD_PI 0x4000
+#define OCTANTIFY(_x, _y, _o)   do {                            \
+    int _t; _o= 0;                                              \
+    if(_y<  0)  {            _x= -_x;   _y= -_y; _o += 4; }     \
+    if(_x<= 0)  { _t= _x;    _x=  _y;   _y= -_t; _o += 2; }     \
+    if(_x<=_y)  { _t= _y-_x; _x= _x+_y; _y=  _t; _o += 1; }     \
+} while(0);
 
 
 #endif

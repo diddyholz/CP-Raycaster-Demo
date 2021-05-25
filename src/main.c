@@ -42,7 +42,8 @@ void draw2dField();
 void draw3dField();
 void drawSprites();
 void setupSprites();
-uint8_t fixedATan(uint32_t tan);
+// uint16_t fixedFineATan(uint32_t tan);
+uint16_t atan2Cordic(int x, int y);
 int compareSpriteDistance(const void * elem1, const void * elem2);
 void drawRectangle(uint16_t x, uint16_t y, uint16_t width, uint16_t height, CASColor color);
 void drawLine(int32_t x1, int32_t y1, int32_t x2, int32_t y2, CASColor color);
@@ -1014,10 +1015,6 @@ void drawSprites()
 {
   for(uint8_t spriteId = 0; spriteId < spriteCount; spriteId++)
   {
-    // // calculate the (distance / 2)² and angle of the sprites from 0° 
-    // spriteArray[spriteId].distanceToPlayer = ((((mainPlayer.xPos - spriteArray[spriteId].xPos) / 2) * ((mainPlayer.xPos - spriteArray[spriteId].xPos) / 2)) + 
-    //   (((mainPlayer.yPos - spriteArray[spriteId].yPos) / 2) * ((mainPlayer.yPos - spriteArray[spriteId].yPos) / 2))); // no squareroot will be used, as that would be too slow
-
     uint32_t oppositeSide;
     uint32_t adjacentSide;
 
@@ -1031,7 +1028,7 @@ void drawSprites()
       }
       else
       {
-        spriteArray[spriteId].angle = 90;
+        spriteArray[spriteId].angle = 900;
         oppositeSide = (mainPlayer.yPos - spriteArray[spriteId].yPos);
         adjacentSide = (spriteArray[spriteId].xPos - mainPlayer.xPos);
       }
@@ -1040,21 +1037,25 @@ void drawSprites()
     {
       if(spriteArray[spriteId].yPos > mainPlayer.yPos)
       {
-        spriteArray[spriteId].angle = 270;
+        spriteArray[spriteId].angle = 2700;
         oppositeSide = (spriteArray[spriteId].yPos - mainPlayer.yPos);
         adjacentSide = (mainPlayer.xPos - spriteArray[spriteId].xPos);
       }
       else
       {
-        spriteArray[spriteId].angle = 180;
+        spriteArray[spriteId].angle = 1800;
         oppositeSide = (mainPlayer.xPos - spriteArray[spriteId].xPos);
         adjacentSide = (mainPlayer.yPos - spriteArray[spriteId].yPos);
       }
     }    
 
-    uint32_t tan = (oppositeSide * BIT_16) / adjacentSide;
-    uint8_t angle = fixedATan(tan);
-    spriteArray[spriteId].distanceToPlayer = (oppositeSide * BIT_16) / sintable[angle];
+    uint32_t tan = (oppositeSide * BIT_16) / (adjacentSide + 1);
+    // uint16_t angle = fixedFineATan(tan);
+    uint16_t angle = atan2Cordic(adjacentSide, oppositeSide);
+    spriteArray[spriteId].distanceToPlayer = (oppositeSide * BIT_16) / (fine_sintable[angle] + 1);
+
+    printHexWord(oppositeSide, 0, 20 - spriteId); // debug
+    printHexWord(fine_sintable[angle], 5, 20 - spriteId); // debug
 
     spriteArray[spriteId].angle += angle;
   }
@@ -1068,12 +1069,13 @@ void drawSprites()
     if(!spriteArray[spriteId].isVisible)
       continue;
 
-    int16_t angleToPlayer = spriteArray[spriteId].angle - mainPlayer.angle + (PLAYER_FOV / 2);
+    int16_t angleToPlayer = spriteArray[spriteId].angle - (mainPlayer.angle * 10) + ((PLAYER_FOV / 2) * 10);
 
-    // printHexWord(angleToPlayer, 0, spriteId); // debug
+    printHexWord(angleToPlayer, 0, spriteId); // debug
+    printHexWord(spriteArray[spriteId].distanceToPlayer, 5, spriteId); // debug
 
     // continue if sprite is behind player
-    if(angleToPlayer < -60 || angleToPlayer > 120)
+    if(angleToPlayer < -600 || angleToPlayer > 1500)
       continue;
 
     // calculate width and height
@@ -1082,19 +1084,19 @@ void drawSprites()
     uint32_t currentXStep = 0;
     uint32_t currentYStep = 0;
     
-    int16_t viewX = ((DISPLAY_WIDTH - 21) - (angleToPlayer * 5)) - (size / 2);
+    int16_t viewX = ((DISPLAY_WIDTH - 21) - (angleToPlayer / 2)) - (size / 2);
     int16_t viewY;
 
     uint16_t pixelColor;
 
-    printHexWord(size, 5, spriteId);
-    printHexWord(step >>16, 0, 10);
-    printHexWord(step, 5, 10);
+    // printHexWord(size, 5, spriteId);
+    // printHexWord(step >>16, 0, 10);
+    // printHexWord(step, 5, 10);
 
     for(uint16_t column = 0; column < size; column++)
     {
       // check if in view
-      if((viewX < 0) || (viewX > (DISPLAY_WIDTH - 20)))
+      if((viewX < 0) || (viewX > (DISPLAY_WIDTH - 21)))
       {
         // printf("Not in X view", 10, spriteId, 0);
         // refreshDisplay();
@@ -1158,6 +1160,51 @@ void drawSprites()
   }
 }
 
+uint16_t atan2Cordic(int x, int y)
+{
+    if(y==0)    return (x>=0 ? 0 : BRAD_PI);
+
+    int phi;
+
+    OCTANTIFY(x, y, phi);
+    phi *= BRAD_PI/4;
+
+    // Scale up a bit for greater accuracy.
+    if(x < 0x10000)
+    {
+        x *= 0x1000;
+        y *= 0x1000;
+    }
+
+    // atan(2^-i) terms using PI=0x10000 for accuracy
+    const uint16_t list[] =
+    {
+        0x4000, 0x25C8, 0x13F6, 0x0A22, 0x0516, 0x028C, 0x0146, 0x00A3,
+        0x0051, 0x0029, 0x0014, 0x000A, 0x0005, 0x0003, 0x0001, 0x0001
+    };
+
+    int i, tmp, dphi=0;
+    for(i=1; i<12; i++)
+    {
+        if(y>=0)
+        {
+            tmp= x + (y>>i);
+            y  = y - (x>>i);
+            x  = tmp;
+            dphi += list[i];
+        }
+        else
+        {
+            tmp= x - (y>>i);
+            y  = y + (x>>i);
+            x  = tmp;
+            dphi -= list[i];
+        }
+    }
+     
+    return ((phi + (dphi>>2)) * BIT_16) / ((BRAD_PI * BIT_16) / 1800);
+}
+
 int compareSpriteDistance(const void * elem1, const void * elem2) 
 {
     Sprite *f = (Sprite*)elem1;
@@ -1166,27 +1213,30 @@ int compareSpriteDistance(const void * elem1, const void * elem2)
     return (f->distanceToPlayer > s->distanceToPlayer) - (f->distanceToPlayer < s->distanceToPlayer);
 }
 
-uint8_t fixedATan(uint32_t tan)
-{
-  // loop through tangent table and check which angle is almost the calculated tangent for the sprite location
-  // (basically just an overcomplicated atan for fixed point angles)
-  uint16_t lowestDeviation = 65535;
-  uint8_t angleWithLowestDeviation;
-  uint32_t currentDeviation;
+// uint16_t fixedFineATan(uint32_t tan)
+// {
+//   if(tan > fine_tantable[899])
+//     return 899;
 
-  for(uint8_t x = 0; x < 90; x++)
-  {
-    currentDeviation = ((abs(tantable[x] - tan) * (BIT_16 / 64)) / tan);
+//   // loop through tangent table and check which angle is almost the calculated tangent for the sprite location
+//   // (basically just an overcomplicated atan for fixed point angles)
+//   uint16_t lowestDeviation = 65535;
+//   uint16_t angleWithLowestDeviation;
+//   uint32_t currentDeviation;
 
-    if(currentDeviation < lowestDeviation)
-    { 
-      lowestDeviation = currentDeviation;
-      angleWithLowestDeviation = x;
-    }
-  }
+//   for(uint16_t x = 0; x < 900; x++)
+//   {
+//     currentDeviation = ((abs(fine_tantable[x] - tan) * (BIT_16 / 64)) / tan);
 
-  return angleWithLowestDeviation; 
-}
+//     if(currentDeviation < lowestDeviation)
+//     { 
+//       lowestDeviation = currentDeviation;
+//       angleWithLowestDeviation = x;
+//     }
+//   }
+
+//   return angleWithLowestDeviation; 
+// }
 
 void drawRectangle(uint16_t x, uint16_t y, uint16_t width, uint16_t height, CASColor color)
 {
