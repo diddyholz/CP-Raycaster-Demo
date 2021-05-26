@@ -1,4 +1,4 @@
-.vscode/c_cpp_properties.json
+.vscode/*
 app4*
 obj/*
 table_generator.py

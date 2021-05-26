@@ -1048,14 +1048,12 @@ void drawSprites()
         adjacentSide = (mainPlayer.yPos - spriteArray[spriteId].yPos);
       }
     }    
-
-    uint32_t tan = (oppositeSide * BIT_16) / (adjacentSide + 1);
-    // uint16_t angle = fixedFineATan(tan);
+    
     uint16_t angle = atan2Cordic(adjacentSide, oppositeSide);
     spriteArray[spriteId].distanceToPlayer = (oppositeSide * BIT_16) / (fine_sintable[angle] + 1);
 
-    printHexWord(oppositeSide, 0, 20 - spriteId); // debug
-    printHexWord(fine_sintable[angle], 5, 20 - spriteId); // debug
+    // printHexWord(oppositeSide, 0, 20 - spriteId); // debug
+    // printHexWord(fine_sintable[angle], 5, 20 - spriteId); // debug
 
     spriteArray[spriteId].angle += angle;
   }
@@ -1070,38 +1068,73 @@ void drawSprites()
       continue;
 
     int16_t angleToPlayer = spriteArray[spriteId].angle - (mainPlayer.angle * 10) + ((PLAYER_FOV / 2) * 10);
+    
+    if(spriteArray[spriteId].angle > 1800 && (mainPlayer.angle * 10) < 1800)
+      angleToPlayer -= 3600;
+    else if(spriteArray[spriteId].angle < 1800 && (mainPlayer.angle * 10) > 1800)
+      angleToPlayer += 3600;
 
-    printHexWord(angleToPlayer, 0, spriteId); // debug
-    printHexWord(spriteArray[spriteId].distanceToPlayer, 5, spriteId); // debug
+
+    // printHexWord(angleToPlayer, 0, spriteId); // debug
+    // printHexWord(spriteArray[spriteId].distanceToPlayer, 5, spriteId); // debug
 
     // continue if sprite is behind player
-    if(angleToPlayer < -600 || angleToPlayer > 1500)
+    if(angleToPlayer < -600 || angleToPlayer > 1200)
       continue;
 
     // calculate width and height
-    uint16_t size = WALL_HEIGHT_CONSTANT / spriteArray[spriteId].distanceToPlayer;
-    uint32_t step = (SPRITE_TEXTURE_RES * BIT_16) / size;
+    uint16_t width = WALL_HEIGHT_CONSTANT / spriteArray[spriteId].distanceToPlayer;
+    uint16_t height = width;
+    uint32_t step = (SPRITE_TEXTURE_RES * BIT_16) / width;
     uint32_t currentXStep = 0;
     uint32_t currentYStep = 0;
     
-    int16_t viewX = ((DISPLAY_WIDTH - 21) - (angleToPlayer / 2)) - (size / 2);
+    int16_t viewX = ((DISPLAY_WIDTH - 21) - (angleToPlayer / 2)) - (width / 2);
+
     int16_t viewY;
+    int16_t viewYStart = ((HEIGHT_3D - height) / 2);
+    uint32_t viewYStartStep = 0;
 
     uint16_t pixelColor;
+
+    if(viewX < 0)
+    {
+      if(abs(viewX) > width)
+        continue;
+
+      currentXStep = (-viewX * step);
+      width -= abs(viewX);
+      viewX = 0;
+    }
+
+    if(width > (DISPLAY_WIDTH - 20))
+    {
+      // currentXStep += (((width - (DISPLAY_WIDTH - 20)) / 2) * step);
+      width = (DISPLAY_WIDTH - 20) - viewX;
+    }
+
+    if(viewX > (DISPLAY_WIDTH - 21))
+      continue;
+
+    if(height > HEIGHT_3D) 
+    {
+      viewYStartStep = (((height - HEIGHT_3D) / 2) * step);
+      viewYStart = 0;
+      height = HEIGHT_3D;
+    }
 
     // printHexWord(size, 5, spriteId);
     // printHexWord(step >>16, 0, 10);
     // printHexWord(step, 5, 10);
 
-    for(uint16_t column = 0; column < size; column++)
+    for(uint16_t column = 0; column < width; column++)
     {
       // check if in view
-      if((viewX < 0) || (viewX > (DISPLAY_WIDTH - 21)))
+      if((viewX > (DISPLAY_WIDTH - 21)))
       {
         // printf("Not in X view", 10, spriteId, 0);
         // refreshDisplay();
-        viewX++;
-        currentXStep += step;
+        column = width;
         continue;
       }
 
@@ -1115,23 +1148,13 @@ void drawSprites()
         continue;
       }
 
-      viewY = ((HEIGHT_3D - size) / 2);
-      currentYStep = 0;
+      viewY = viewYStart;
+      currentYStep = viewYStartStep;
 
       // printf("In view", 10, spriteId, 0); // debug (hit)
 
-      for(uint16_t row = 0; row < size; row++)
+      for(uint16_t row = 0; row < height; row++)
       {
-        if((viewY < 0) || (viewY > HEIGHT_3D))
-        {
-          // printf("Not in Y view", 10, spriteId, 0);
-          // printHexWord(viewY, 20, 0);
-          // refreshDisplay();
-          viewY++;
-          currentYStep += step;
-          continue;
-        }
-
         pixelColor = spriteTextureArray[spriteArray[spriteId].texture][currentYStep / BIT_16][currentXStep / BIT_16];
 
         if(pixelColor == 0x0000)
