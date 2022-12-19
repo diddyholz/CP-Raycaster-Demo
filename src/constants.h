@@ -1,7 +1,8 @@
 #ifndef _CONSTANTS_H
 #define _CONSTANTS_H
 
-#include <cas-sdk/display.h>
+#define DISPLAY_WIDTH 	320
+#define DISPLAY_HEIGHT 	528
 
 #define BIT_16  0x10000
 
